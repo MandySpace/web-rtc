@@ -1,9 +1,26 @@
+import { useEffect } from "react";
+import { io } from "socket.io-client";
 import { Button } from "@/components/ui/button";
 import { Mic, Monitor, Phone, Video } from "lucide-react";
 import LocalPlayback from "./components/local-playback";
 import RemotePlayback from "./components/remote-playback";
 
 function App() {
+  useEffect(() => {
+    const socket = io("https://video.amandev.in", { transports: ["polling"] });
+    socket.on("connect", () => {
+      console.log(socket.id); // x8WIv7-mJelg7on_ALbx
+    });
+
+    socket.on("disconnect", () => {
+      console.log(socket.id); // undefined
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   return (
     <div className="elative h-screen w-screen bg-gradient-to-br from-indigo-500 to-purple-600 overflow-hidden">
       <RemotePlayback />
