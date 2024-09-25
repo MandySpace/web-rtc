@@ -141,17 +141,21 @@ function LocalPlayback() {
       onTouchStart={onTouchStart}
       className="bg-black bg-opacity-50 rounded-lg p-1 shadow-lg"
     >
-      <video
-        ref={localVideoRef}
-        className={cn(
-          "object-cover rounded-md ",
-          aspectRatio > 1
-            ? "aspect-video w-56 sm:w-60 md:w-64 lg:w-80"
-            : "aspect-[9/16] h-56 sm:h-52 md:h-72 lg:h-80"
-        )}
-        autoPlay
-        muted
-      />
+      {deviceError ? (
+        <h2>Error occured</h2>
+      ) : (
+        <video
+          ref={localVideoRef}
+          className={cn(
+            "object-cover rounded-md ",
+            aspectRatio > 1
+              ? "aspect-video w-56 sm:w-60 md:w-64 lg:w-80"
+              : "aspect-[9/16] h-56 sm:h-52 md:h-72 lg:h-80"
+          )}
+          autoPlay
+          muted
+        />
+      )}
     </div>
   );
 }
