@@ -1,8 +1,17 @@
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 function LocalPlayback() {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState({
+    x: 0,
+    y: 0,
+  });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -11,6 +20,14 @@ function LocalPlayback() {
 
   useEffect(() => {
     getLocalPlayback();
+  }, []);
+
+  useLayoutEffect(() => {
+    console.log(dragRef.current?.offsetWidth);
+    setPosition({
+      x: window.innerWidth - (dragRef.current?.offsetWidth ?? 0),
+      y: window.innerHeight - (dragRef.current?.offsetHeight ?? 0) - 80,
+    });
   }, []);
 
   const getLocalPlayback = async () => {
@@ -47,7 +64,25 @@ function LocalPlayback() {
         const startY = clientY - position.y;
 
         const onMove = (clientX: number, clientY: number) => {
-          setPosition({ x: clientX - startX, y: clientY - startY });
+          // Calculate new positions
+          let newX = clientX - startX;
+          let newY = clientY - startY;
+          const windowWidth = window.innerWidth;
+          const windowHeight = window.innerHeight;
+
+          // Get element's width and height
+          const elementWidth = dragRef.current?.offsetWidth ?? 0;
+          const elementHeight = dragRef.current?.offsetHeight ?? 0;
+
+          // Restrict the element's position within the boundaries
+          if (newX < 0) newX = 0; // Prevent dragging off the left side
+          if (newY < 0) newY = 0; // Prevent dragging off the top
+          if (newX + elementWidth > windowWidth)
+            newX = windowWidth - elementWidth; // Prevent dragging off the right side
+          if (newY + elementHeight > windowHeight)
+            newY = windowHeight - elementHeight; // Prevent dragging off the bottom
+
+          setPosition({ x: newX, y: newY });
         };
 
         const onEnd = () => {
