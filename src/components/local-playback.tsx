@@ -23,7 +23,6 @@ function LocalPlayback() {
   }, []);
 
   useLayoutEffect(() => {
-    console.log(dragRef.current?.offsetWidth);
     setPosition({
       x: window.innerWidth - (dragRef.current?.offsetWidth ?? 0),
       y: window.innerHeight - (dragRef.current?.offsetHeight ?? 0) - 80,
@@ -51,6 +50,7 @@ function LocalPlayback() {
         };
       }
     } catch (error) {
+      console.log(error);
       if (error instanceof Error && error.name === "NotFoundError") {
         setDeviceError(true);
       }
