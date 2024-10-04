@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Video, Users, Sparkles, Shield } from "lucide-react";
+import { useContext } from "react";
+import { AppContext } from "./App";
 
 export default function LandingPage() {
+  const { setRoomId } = useContext(AppContext);
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex flex-col">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
@@ -27,6 +30,18 @@ export default function LandingPage() {
           <Button
             size="lg"
             className="text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+            onClick={() => {
+              const roomId = Math.random().toString(36).substring(2, 7);
+
+              const url = new URL(window.location.href);
+              const params = url.searchParams;
+              params.set("room", roomId);
+
+              const newUrl = url.toString();
+              window.history.pushState({}, "", newUrl);
+
+              setRoomId(roomId);
+            }}
           >
             Start a New Call
             <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />

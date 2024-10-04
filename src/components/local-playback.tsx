@@ -1,6 +1,8 @@
+import { AppContext } from "@/App";
 import { cn } from "@/lib/utils";
 import {
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -17,23 +19,17 @@ function LocalPlayback() {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const [deviceError, setDeviceError] = useState(false);
   const [aspectRatio, setAspectRatio] = useState(16 / 9);
+  const { peerConnection } = useContext(AppContext);
 
-  useEffect(() => {
-    getLocalPlayback();
-  }, []);
-
-  useLayoutEffect(() => {
-    setPosition({
-      x: window.innerWidth - (dragRef.current?.offsetWidth ?? 0),
-      y: window.innerHeight - (dragRef.current?.offsetHeight ?? 0) - 80,
-    });
-  }, []);
-
-  const getLocalPlayback = async () => {
+  const getLocalPlayback = useCallback(async () => {
     try {
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: false,
+      });
+
+      localStream.getTracks().forEach((track) => {
+        peerConnection?.addTrack(track, localStream);
       });
 
       if (localVideoRef.current) {
@@ -55,7 +51,20 @@ function LocalPlayback() {
         setDeviceError(true);
       }
     }
-  };
+  }, [peerConnection]);
+
+  useEffect(() => {
+    if (peerConnection) {
+      getLocalPlayback();
+    }
+  }, [peerConnection, getLocalPlayback]);
+
+  useLayoutEffect(() => {
+    setPosition({
+      x: window.innerWidth - (dragRef.current?.offsetWidth ?? 0),
+      y: window.innerHeight - (dragRef.current?.offsetHeight ?? 0) - 80,
+    });
+  }, []);
 
   const onStart = useCallback(
     (clientX: number, clientY: number) => {

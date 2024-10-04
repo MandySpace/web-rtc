@@ -8,47 +8,110 @@ import DeclineButton from "./components/decline-button";
 import LandingPage from "./landing";
 
 type AppContextType = {
-  socket: Socket | undefined;
-  roomId: string | undefined;
+  peerConnection: RTCPeerConnection | undefined;
+  setRoomId: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 export const AppContext = createContext<AppContextType>({
-  socket: undefined,
-  roomId: undefined,
+  peerConnection: undefined,
+  setRoomId: () => {},
 });
 
 function App() {
   const [socket, setSocket] = useState<Socket | undefined>(undefined);
-  const [roomId, setRoomId] = useState<string | undefined>(undefined);
+  const [peerConnection, setPeerConnection] = useState<
+    RTCPeerConnection | undefined
+  >(undefined);
+
+  const getRoomId = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get("room");
+  };
+
+  const [roomId, setRoomId] = useState(getRoomId);
 
   useEffect(() => {
+    if (!roomId) {
+      return;
+    }
+    const socket = io("https://video.amandev.in", {
+      transports: ["polling"],
+    });
+
+    socket.on("connect", () => {
+      console.log("connected: ", socket.id);
+      socket.emit("join", roomId);
+
+      const configuration = {
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      };
+
+      const peerConnection = new RTCPeerConnection(configuration);
+
+      console.log("created peer: ", peerConnection);
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket?.emit("ice-candidate", event.candidate, roomId);
+        }
+      };
+
+      setPeerConnection(peerConnection);
+    });
+
+    socket.on("disconnect", () => {});
+
+    setSocket(socket);
+
     return () => {
       if (socket) {
         socket.disconnect();
       }
     };
-  }, []);
+  }, [roomId]);
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const roomId = searchParams.get("room");
-    console.log(roomId);
+    if (!socket) {
+      return;
+    }
 
-    createSocketConnection();
-  }, [window.location]);
+    socket.on("user-joined", async (userId) => {
+      console.log("user joined: ", userId, peerConnection);
+      const offer = await peerConnection?.createOffer();
+      await peerConnection?.setLocalDescription(offer);
+      socket.emit("offer", offer, userId);
+    });
 
-  const createSocketConnection = () => {
-    const socket = io("https://video.amandev.in", { transports: ["polling"] });
+    socket.on("offer", async (offer, userId) => {
+      console.log("offer: ", offer);
+      await peerConnection?.setRemoteDescription(
+        new RTCSessionDescription(offer)
+      );
+      const answer = await peerConnection?.createAnswer();
+      await peerConnection?.setLocalDescription(answer);
+      socket.emit("answer", answer, userId);
+    });
 
-    socket.on("connect", () => {});
+    socket.on("answer", async (answer) => {
+      console.log("answer: ", answer);
+      await peerConnection?.setRemoteDescription(
+        new RTCSessionDescription(answer)
+      );
+    });
 
-    socket.on("disconnect", () => {});
+    socket.on("ice-candidate", async (candidate) => {
+      console.log("ice: ", candidate);
+      try {
+        await peerConnection?.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (error) {
+        console.error("Error adding ICE candidate:", error);
+      }
+    });
+  }, [peerConnection]);
 
-    setSocket(socket);
-  };
-
+  console.log(roomId);
   return (
-    <AppContext.Provider value={{ socket, roomId }}>
+    <AppContext.Provider value={{ peerConnection, setRoomId }}>
       {roomId ? (
         <div className="relative h-screen w-screen bg-gradient-to-br from-indigo-500 to-purple-600 overflow-hidden">
           <RemotePlayback />
