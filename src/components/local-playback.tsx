@@ -25,7 +25,7 @@ function LocalPlayback() {
     try {
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: false,
+        audio: true,
       });
 
       localStream.getTracks().forEach((track) => {
@@ -54,9 +54,7 @@ function LocalPlayback() {
   }, [peerConnection]);
 
   useEffect(() => {
-    if (peerConnection) {
-      getLocalPlayback();
-    }
+    getLocalPlayback();
   }, [peerConnection, getLocalPlayback]);
 
   useLayoutEffect(() => {
@@ -148,10 +146,12 @@ function LocalPlayback() {
       }}
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
-      className="bg-black bg-opacity-50 rounded-lg p-1 shadow-lg"
+      className="bg-gradient-to-br from-indigo-500 to-purple-600 bg-opacity-30 rounded-lg p-1 shadow-lg"
     >
       {deviceError ? (
-        <h2>Error occured</h2>
+        <div>
+          <h2>Error occured</h2>
+        </div>
       ) : (
         <video
           ref={localVideoRef}

@@ -1,10 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Video, Users, Sparkles, Shield } from "lucide-react";
-import { useContext } from "react";
-import { AppContext } from "./App";
 
 export default function LandingPage() {
-  const { setRoomId } = useContext(AppContext);
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex flex-col">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
@@ -39,8 +36,7 @@ export default function LandingPage() {
 
               const newUrl = url.toString();
               window.history.pushState({}, "", newUrl);
-
-              setRoomId(roomId);
+              window.dispatchEvent(new PopStateEvent("popstate"));
             }}
           >
             Start a New Call

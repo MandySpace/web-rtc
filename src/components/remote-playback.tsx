@@ -3,19 +3,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { AppContext } from "@/App";
 
 function RemotePlayback() {
-  const { peerConnection } = useContext(AppContext);
-  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const { remoteStream } = useContext(AppContext);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null!);
 
   useEffect(() => {
-    if (peerConnection) {
-      peerConnection.ontrack = (event) => {
-        console.log("remote track: ", event);
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-        }
-      };
-    }
-  }, [peerConnection]);
+    remoteVideoRef.current.srcObject = remoteStream;
+  }, [remoteStream]);
+
   return (
     <>
       <div className="absolute inset-0">
@@ -23,6 +17,7 @@ function RemotePlayback() {
           ref={remoteVideoRef}
           className="w-full h-full object-contain"
           autoPlay
+          playsInline
         />
       </div>
       <div className="absolute top-4 left-4 bg-black bg-opacity-50 rounded-full p-2">
