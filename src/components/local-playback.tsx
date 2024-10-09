@@ -22,10 +22,6 @@ function LocalPlayback() {
   const { peerConnection } = useContext(AppContext);
 
   const getLocalPlayback = useCallback(async () => {
-    if (!peerConnection) {
-      return;
-    }
-
     try {
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -33,8 +29,8 @@ function LocalPlayback() {
       });
 
       localStream.getTracks().forEach((track) => {
-        console.log("adding track: ", track);
-        peerConnection.addTrack(track, localStream);
+        console.log("adding track: ", localStream);
+        peerConnection?.addTrack(track, localStream);
       });
 
       if (localVideoRef.current) {
@@ -59,7 +55,9 @@ function LocalPlayback() {
   }, [peerConnection]);
 
   useEffect(() => {
-    getLocalPlayback();
+    if (peerConnection) {
+      getLocalPlayback();
+    }
   }, [getLocalPlayback, peerConnection]);
 
   useLayoutEffect(() => {

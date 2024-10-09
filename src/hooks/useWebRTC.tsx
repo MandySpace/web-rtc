@@ -54,7 +54,6 @@ export const useWebRTC = () => {
       };
 
       socket.on("user-joined", async (userId) => {
-        console.log("user joined:", userId, peerConnection);
         const offer = await peerConnection.createOffer();
         await peerConnection?.setLocalDescription(offer);
         if (offer) {
@@ -63,7 +62,6 @@ export const useWebRTC = () => {
       });
 
       socket.on("offer", async (offer, userId) => {
-        console.log("offer received:", offer);
         await peerConnection.setRemoteDescription(
           new RTCSessionDescription(offer)
         );
@@ -72,14 +70,12 @@ export const useWebRTC = () => {
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         if (answer) {
-          console.log("emitting answer:", answer);
           socket.emit("answer", answer, userId);
         }
         addBufferedCandidates();
       });
 
       socket.on("answer", async (answer) => {
-        console.log("answer received:", answer);
         await peerConnection.setRemoteDescription(
           new RTCSessionDescription(answer)
         );
