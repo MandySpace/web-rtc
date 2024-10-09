@@ -138,6 +138,9 @@ export const useWebRTC = () => {
     });
 
     return () => {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
       peerConnection?.close();
       socket.disconnect();
       setPeerConnection(null);
