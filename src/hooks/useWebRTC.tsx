@@ -5,7 +5,6 @@ import { useRoomSearchParams } from "./useRoomSearchParams";
 export const useWebRTC = () => {
   const [peerConnection, setPeerConnection] =
     useState<RTCPeerConnection | null>(null);
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const { roomId } = useRoomSearchParams();
   const iceCandidatesBuffer = useRef<RTCIceCandidate[]>([]);
@@ -45,13 +44,12 @@ export const useWebRTC = () => {
 
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
-          // console.log("emitting ice candidate:", event.candidate);
           socket.emit("ice-candidate", event.candidate, roomId);
         }
       };
 
       peerConnection.ontrack = (event) => {
-        console.log("remote stream received: ", event);
+        console.log("remote stream received: ", event.streams[0]);
         setRemoteStream(event.streams[0]);
       };
 
@@ -90,7 +88,6 @@ export const useWebRTC = () => {
       });
 
       socket.on("ice-candidate", async (candidate) => {
-        // console.log("ice candidate received:", candidate);
         const iceCandidate = new RTCIceCandidate(candidate);
 
         if (isRemoteDescriptionSet.current && peerConnection) {
@@ -107,23 +104,14 @@ export const useWebRTC = () => {
 
     return () => {
       socket.disconnect();
+      peerConnection?.close();
+      setPeerConnection(null);
     };
   }, [roomId]);
-
-  useEffect(() => {
-    if (!localStream || !peerConnection) {
-      return;
-    }
-
-    localStream.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, localStream);
-    });
-  }, [localStream, peerConnection]);
 
   return {
     peerConnection,
     remoteStream,
     roomId,
-    setLocalStream,
   };
 };
