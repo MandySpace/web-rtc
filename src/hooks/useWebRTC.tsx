@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import { useRoomSearchParams } from "./useRoomSearchParams";
 
 export const useWebRTC = () => {
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [peerConnection, setPeerConnection] =
     useState<RTCPeerConnection | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const { roomId } = useRoomSearchParams();
   const iceCandidatesBuffer = useRef<RTCIceCandidate[]>([]);
@@ -32,37 +34,52 @@ export const useWebRTC = () => {
       transports: ["polling"],
     });
 
-    const configuration = {
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        // Add TURN servers here
-      ],
-    };
-
-    const pc = new RTCPeerConnection(configuration);
-    setPeerConnection(pc);
+    let peerConnection: RTCPeerConnection | null = null;
 
     socket.on("connect", () => {
       console.log("connected:", socket.id);
-      socket.emit("join", roomId);
+      const configuration = {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          // Add TURN servers here
+        ],
+      };
+      peerConnection = new RTCPeerConnection(configuration);
 
-      pc.onicecandidate = (event) => {
+      peerConnection.onicecandidate = (event) => {
+        console.log("emitting ice candidate:", event);
         if (event.candidate) {
-          console.log("emitting ice candidate:", event.candidate);
-          socket?.emit("ice-candidate", event.candidate, roomId);
+          socket.emit("ice-candidate", event.candidate, roomId);
         }
       };
 
-      pc.ontrack = (event) => {
+      peerConnection.ontrack = (event) => {
         console.log("remote stream received: ", event);
         setRemoteStream(event.streams[0]);
       };
+
+      setPeerConnection(peerConnection);
+      setSocket(socket);
     });
+
+    return () => {
+      socket.disconnect();
+      peerConnection?.close();
+      setPeerConnection(null);
+      setSocket(null);
+    };
+  }, [roomId]);
+
+  useEffect(() => {
+    if (!socket || !peerConnection) {
+      return;
+    }
+    socket.emit("join", roomId);
 
     socket.on("user-joined", async (userId) => {
       console.log("user joined:", userId);
-      const offer = await pc?.createOffer();
-      await pc?.setLocalDescription(offer);
+      const offer = await peerConnection.createOffer();
+      await peerConnection?.setLocalDescription(offer);
       if (offer) {
         socket.emit("offer", offer, userId);
       }
@@ -70,11 +87,13 @@ export const useWebRTC = () => {
 
     socket.on("offer", async (offer, userId) => {
       console.log("offer received:", offer);
-      await pc?.setRemoteDescription(new RTCSessionDescription(offer));
+      await peerConnection.setRemoteDescription(
+        new RTCSessionDescription(offer)
+      );
       isRemoteDescriptionSet.current = true;
 
-      const answer = await pc?.createAnswer();
-      await pc?.setLocalDescription(answer);
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
       if (answer) {
         console.log("emitting answer:", answer);
         socket.emit("answer", answer, userId);
@@ -84,7 +103,9 @@ export const useWebRTC = () => {
 
     socket.on("answer", async (answer) => {
       console.log("answer received:", answer);
-      await pc?.setRemoteDescription(new RTCSessionDescription(answer));
+      await peerConnection.setRemoteDescription(
+        new RTCSessionDescription(answer)
+      );
       isRemoteDescriptionSet.current = true;
       addBufferedCandidates();
     });
@@ -93,21 +114,15 @@ export const useWebRTC = () => {
       console.log("ice candidate received:", candidate);
       const iceCandidate = new RTCIceCandidate(candidate);
 
-      if (isRemoteDescriptionSet.current && pc) {
-        pc.addIceCandidate(iceCandidate).catch((e) =>
-          console.error("Error adding ice candidate", e)
-        );
+      if (isRemoteDescriptionSet.current && peerConnection) {
+        peerConnection
+          .addIceCandidate(iceCandidate)
+          .catch((e) => console.error("Error adding ice candidate", e));
       } else {
         iceCandidatesBuffer.current.push(iceCandidate);
       }
     });
-
-    return () => {
-      socket.disconnect();
-      pc?.close();
-      setPeerConnection(null);
-    };
-  }, [roomId]);
+  }, [socket, peerConnection]);
 
   const addTrack = useCallback(
     (track: MediaStreamTrack, stream: MediaStream) => {
@@ -116,12 +131,11 @@ export const useWebRTC = () => {
     [peerConnection]
   );
 
-  console.log(peerConnection?.signalingState);
-
   return {
     peerConnection,
     remoteStream,
-    addTrack,
     roomId,
+    addTrack,
+    setLocalStream,
   };
 };
