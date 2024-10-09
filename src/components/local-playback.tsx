@@ -163,6 +163,7 @@ function LocalPlayback() {
           )}
           autoPlay
           muted
+          playsInline
         />
       )}
     </div>
