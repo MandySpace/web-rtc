@@ -19,18 +19,12 @@ function LocalPlayback() {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const [deviceError, setDeviceError] = useState(false);
   const [aspectRatio, setAspectRatio] = useState(16 / 9);
-  const { peerConnection } = useContext(AppContext);
 
   const getLocalPlayback = useCallback(async () => {
     try {
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true,
-      });
-
-      localStream.getTracks().forEach((track) => {
-        console.log("adding track: ", localStream);
-        peerConnection?.addTrack(track, localStream);
       });
 
       if (localVideoRef.current) {
@@ -52,13 +46,11 @@ function LocalPlayback() {
         setDeviceError(true);
       }
     }
-  }, [peerConnection]);
+  }, []);
 
   useEffect(() => {
-    if (peerConnection) {
-      getLocalPlayback();
-    }
-  }, [getLocalPlayback, peerConnection]);
+    getLocalPlayback();
+  }, [getLocalPlayback]);
 
   useLayoutEffect(() => {
     setPosition({

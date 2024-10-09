@@ -9,6 +9,7 @@ export const useWebRTC = () => {
   const { roomId } = useRoomSearchParams();
   const iceCandidatesBuffer = useRef<RTCIceCandidate[]>([]);
   const isRemoteDescriptionSet = useRef<boolean>(false);
+  const localStreamRef = useRef<MediaStream | null>(null);
 
   const addBufferedCandidates = useCallback(() => {
     if (peerConnection && isRemoteDescriptionSet.current) {
@@ -23,6 +24,20 @@ export const useWebRTC = () => {
     }
   }, [peerConnection]);
 
+  const addLocalTracks = useCallback(
+    (peerConnection: RTCPeerConnection | null) => {
+      console.log(localStreamRef.current, peerConnection);
+      if (localStreamRef.current && peerConnection) {
+        localStreamRef.current.getTracks().forEach((track) => {
+          if (peerConnection && localStreamRef.current) {
+            peerConnection.addTrack(track, localStreamRef.current);
+          }
+        });
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     if (!roomId) {
       return;
@@ -32,6 +47,8 @@ export const useWebRTC = () => {
       transports: ["polling"],
     });
 
+    let peerConnection: RTCPeerConnection | null = null;
+
     socket.on("connect", () => {
       console.log("connected:", socket.id);
       socket.emit("join", roomId);
@@ -40,7 +57,7 @@ export const useWebRTC = () => {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       };
 
-      const peerConnection = new RTCPeerConnection(configuration);
+      peerConnection = new RTCPeerConnection(configuration);
 
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
@@ -54,21 +71,42 @@ export const useWebRTC = () => {
       };
 
       socket.on("user-joined", async (userId) => {
-        const offer = await peerConnection.createOffer();
+        console.log("user-joined: ", userId);
+        if (!localStreamRef.current) {
+          localStreamRef.current = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+        }
+        addLocalTracks(peerConnection);
+        const offer = await peerConnection?.createOffer();
         await peerConnection?.setLocalDescription(offer);
         if (offer) {
           socket.emit("offer", offer, userId);
         }
       });
 
+      socket.on("user-left", async (userId) => {
+        console.log("user-left: ", userId);
+        setRemoteStream(null);
+      });
+
       socket.on("offer", async (offer, userId) => {
-        await peerConnection.setRemoteDescription(
+        console.log("received offer");
+        if (!localStreamRef.current) {
+          localStreamRef.current = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+        }
+        addLocalTracks(peerConnection);
+        await peerConnection?.setRemoteDescription(
           new RTCSessionDescription(offer)
         );
         isRemoteDescriptionSet.current = true;
 
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
+        const answer = await peerConnection?.createAnswer();
+        await peerConnection?.setLocalDescription(answer);
         if (answer) {
           socket.emit("answer", answer, userId);
         }
@@ -76,7 +114,8 @@ export const useWebRTC = () => {
       });
 
       socket.on("answer", async (answer) => {
-        await peerConnection.setRemoteDescription(
+        console.log("received answer");
+        await peerConnection?.setRemoteDescription(
           new RTCSessionDescription(answer)
         );
         isRemoteDescriptionSet.current = true;
@@ -99,8 +138,8 @@ export const useWebRTC = () => {
     });
 
     return () => {
-      socket.disconnect();
       peerConnection?.close();
+      socket.disconnect();
       setPeerConnection(null);
     };
   }, [roomId]);
@@ -109,5 +148,6 @@ export const useWebRTC = () => {
     peerConnection,
     remoteStream,
     roomId,
+    localStreamRef,
   };
 };

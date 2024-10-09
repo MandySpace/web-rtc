@@ -10,18 +10,22 @@ import { useWebRTC } from "./hooks/useWebRTC";
 type AppContextType = {
   peerConnection: RTCPeerConnection | null;
   remoteStream: MediaStream | null;
+  localStreamRef: React.MutableRefObject<MediaStream | null>;
 };
 
 export const AppContext = createContext<AppContextType>({
   peerConnection: null,
   remoteStream: null,
+  localStreamRef: { current: null },
 });
 
 function App() {
-  const { peerConnection, roomId, remoteStream } = useWebRTC();
+  const { peerConnection, roomId, remoteStream, localStreamRef } = useWebRTC();
 
   return (
-    <AppContext.Provider value={{ peerConnection, remoteStream }}>
+    <AppContext.Provider
+      value={{ peerConnection, remoteStream, localStreamRef }}
+    >
       {roomId ? (
         <div className="relative h-screen w-screen bg-black overflow-hidden">
           <RemotePlayback />
