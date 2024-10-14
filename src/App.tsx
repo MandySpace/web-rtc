@@ -13,23 +13,31 @@ type AppContextType = {
   peerConnection: RTCPeerConnection | null;
   remoteStream: MediaStream | null;
   localStreamData: LocalStreamData;
+  getLocalPlayback: () => Promise<void>;
 };
 
 export const AppContext = createContext<AppContextType>({
   peerConnection: null,
   remoteStream: null,
   localStreamData: { status: "idle", localStream: null },
+  getLocalPlayback: () => new Promise((res) => res()),
 });
 
 function App() {
-  const { peerConnection, remoteStream, localStreamData } = useWebRTC();
+  const { peerConnection, remoteStream, localStreamData, getLocalPlayback } =
+    useWebRTC();
   const searchParams = useSearchParams();
   const roomId = searchParams.get("room");
   const isCallEnded = searchParams.get("end");
 
   return (
     <AppContext.Provider
-      value={{ peerConnection, remoteStream, localStreamData }}
+      value={{
+        peerConnection,
+        remoteStream,
+        localStreamData,
+        getLocalPlayback,
+      }}
     >
       {roomId ? (
         <div className="relative h-screen w-screen bg-black overflow-hidden">

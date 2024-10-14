@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Button } from "./ui/button";
 
 function LocalPlayback() {
   const [position, setPosition] = useState({
@@ -18,7 +19,7 @@ function LocalPlayback() {
   const dragRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const [aspectRatio, setAspectRatio] = useState(16 / 9);
-  const { localStreamData } = useContext(AppContext);
+  const { localStreamData, getLocalPlayback } = useContext(AppContext);
 
   useEffect(() => {
     if (!localVideoRef.current) {
@@ -129,8 +130,17 @@ function LocalPlayback() {
       className="bg-gradient-to-br from-indigo-500 to-purple-600 bg-opacity-30 rounded-lg p-1 shadow-lg"
     >
       {localStreamData.status === "device-not-found" ? (
-        <div>
-          <h2>Error occured</h2>
+        <div className="p-4 flex flex-col justify-center items-center gap-2 aspect-video w-56 sm:w-60 md:w-64 lg:w-80">
+          <h2 className="text-white text-center">
+            Camera not found, please plug in a camera and try again.
+          </h2>
+          <Button
+            className="rounded-full"
+            variant={"outline"}
+            onClick={getLocalPlayback}
+          >
+            Try again
+          </Button>
         </div>
       ) : (
         <video

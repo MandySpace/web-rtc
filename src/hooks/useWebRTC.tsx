@@ -305,5 +305,6 @@ export const useWebRTC = () => {
     remoteStream,
     localStreamRef,
     localStreamData,
+    getLocalPlayback,
   };
 };
