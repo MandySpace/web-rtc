@@ -1,4 +1,4 @@
-import { createContext, useEffect } from "react";
+import { createContext } from "react";
 import LocalPlayback from "./components/local-playback";
 import RemotePlayback from "./components/remote-playback";
 import MicButton from "./components/mic-button";
