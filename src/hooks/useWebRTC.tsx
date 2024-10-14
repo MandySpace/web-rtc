@@ -50,6 +50,7 @@ export const useWebRTC = () => {
         localStream,
       });
     } catch (error) {
+      console.log("Error getUserMedia: ", error);
       if (error instanceof Error && error.name === "NotFoundError") {
         setLocalStreamData({
           status: "device-not-found",
@@ -80,7 +81,6 @@ export const useWebRTC = () => {
   const addLocalTracks = useCallback(
     (peerConnection: RTCPeerConnection | null) => {
       if (localStreamRef.current && peerConnection) {
-        console.log("sender:", peerConnection.getSenders());
         try {
           localStreamRef.current.getTracks().forEach((track) => {
             if (peerConnection && localStreamRef.current) {
