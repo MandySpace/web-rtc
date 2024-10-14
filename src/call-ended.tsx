@@ -8,12 +8,42 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Video, Clock, Users, Star, ArrowRight } from "lucide-react";
+import { useSearchParams } from "./hooks/useSearchParams";
 
 export default function CallEndedPage() {
-  // In a real application, you would fetch these values from your backend
-  const callDuration = "00:45:30";
-  const participants = 2;
-  const callQuality = 4.5;
+  const searchParams = useSearchParams();
+  const roomId = searchParams.get("end");
+
+  let callData: { score: number; duration: number } | null = null;
+  let callQuality = null;
+  let callDuration = null;
+
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600); // 1 hour = 3600 seconds
+    const minutes = Math.floor((seconds % 3600) / 60); // 1 minute = 60 seconds
+    const secs = seconds % 60;
+
+    // Format to ensure two digits for minutes and seconds
+    const formattedHours = String(hours).padStart(2, "0");
+    const formattedMinutes = String(minutes).padStart(2, "0");
+    const formattedSeconds = String(secs).padStart(2, "0");
+
+    return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+  };
+
+  setTimeout(() => {
+    callData = roomId
+      ? JSON.parse(window.localStorage.getItem(roomId) ?? "null")
+      : null;
+
+    callQuality = callData?.score
+      ? parseFloat(callData.score.toFixed(1))
+      : null;
+
+    callDuration = callData?.duration
+      ? formatDuration(Math.floor(callData.duration))
+      : null;
+  }, 300);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex flex-col">
@@ -39,23 +69,29 @@ export default function CallEndedPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex justify-center space-x-8 sm:space-x-12">
-              <div className="flex flex-col items-center">
-                <Clock className="h-8 w-8 text-indigo-600 mb-2" />
-                <span className="text-sm text-gray-600">Duration</span>
-                <span className="font-semibold">{callDuration}</span>
+            {callData ? (
+              <div className="flex justify-center space-x-8 sm:space-x-12">
+                {callDuration ? (
+                  <div className="flex flex-col items-center">
+                    <Clock className="h-8 w-8 text-indigo-600 mb-2" />
+                    <span className="text-sm text-gray-600">Duration</span>
+                    <span className="font-semibold">{callDuration}</span>
+                  </div>
+                ) : null}
+                {/* <div className="flex flex-col items-center">
+                  <Users className="h-8 w-8 text-purple-600 mb-2" />
+                  <span className="text-sm text-gray-600">Participants</span>
+                  <span className="font-semibold">{participants}</span>
+                </div> */}
+                {callQuality ? (
+                  <div className="flex flex-col items-center">
+                    <Star className="h-8 w-8 text-yellow-500 mb-2" />
+                    <span className="text-sm text-gray-600">Call Quality</span>
+                    <span className="font-semibold">{callQuality}/5</span>
+                  </div>
+                ) : null}
               </div>
-              <div className="flex flex-col items-center">
-                <Users className="h-8 w-8 text-purple-600 mb-2" />
-                <span className="text-sm text-gray-600">Participants</span>
-                <span className="font-semibold">{participants}</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <Star className="h-8 w-8 text-yellow-500 mb-2" />
-                <span className="text-sm text-gray-600">Call Quality</span>
-                <span className="font-semibold">{callQuality}/5</span>
-              </div>
-            </div>
+            ) : null}
             <div className="text-center">
               <p className="text-gray-600">
                 We hope you enjoyed your video call experience.
@@ -72,6 +108,7 @@ export default function CallEndedPage() {
                 const url = new URL(window.location.href);
                 const params = url.searchParams;
                 params.set("room", roomId);
+                params.delete("end");
 
                 const newUrl = url.toString();
                 window.history.pushState({}, "", newUrl);
