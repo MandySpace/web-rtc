@@ -141,14 +141,16 @@ export const useWebRTC = () => {
       });
 
       socket.on("user-left", async (userId) => {
-        setTimeout(() => {
-          console.log(
-            "user-left: ",
-            userId,
-            " peerConnection: ",
-            peerConnection
-          );
-        }, 2000);
+        console.log("user-left: ", userId);
+
+        // const url = new URL(window.location.href);
+        // const params = url.searchParams;
+        // params.delete("room");
+        // params.set("end", roomId);
+
+        // const newUrl = url.toString();
+        // window.history.pushState({}, "", newUrl);
+        // window.dispatchEvent(new PopStateEvent("popstate"));
 
         // setRemoteStream(null);
       });
@@ -251,13 +253,12 @@ export const useWebRTC = () => {
         const duration = (Date.now() - callStartTime.current) / 1000; // duration in seconds
 
         if (roomId) {
-          window.localStorage.setItem(
-            roomId,
-            JSON.stringify({
-              score,
-              duration,
-            })
-          );
+          const payload = JSON.stringify({
+            score,
+            duration,
+          });
+          window.localStorage.setItem(roomId, payload);
+          console.log(window.localStorage.getItem(roomId));
         }
       }
     };
