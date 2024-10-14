@@ -2,14 +2,54 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { io } from "socket.io-client";
 import { useRoomSearchParams } from "./useRoomSearchParams";
 
+export type LocalStreamData =
+  | {
+      status: "idle" | "device-not-found" | "error";
+      localStream: null;
+    }
+  | {
+      status: "active";
+      localStream: MediaStream;
+    };
+
 export const useWebRTC = () => {
   const [peerConnection, setPeerConnection] =
     useState<RTCPeerConnection | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [localStreamData, setLocalStreamData] = useState<LocalStreamData>({
+    status: "idle",
+    localStream: null,
+  });
   const { roomId } = useRoomSearchParams();
   const iceCandidatesBuffer = useRef<RTCIceCandidate[]>([]);
   const isRemoteDescriptionSet = useRef<boolean>(false);
   const localStreamRef = useRef<MediaStream | null>(null);
+
+  const getLocalPlayback = useCallback(async () => {
+    try {
+      const localStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      localStreamRef.current = localStream;
+      setLocalStreamData({
+        status: "active",
+        localStream,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "NotFoundError") {
+        setLocalStreamData({
+          status: "device-not-found",
+          localStream: null,
+        });
+      } else {
+        setLocalStreamData({
+          status: "error",
+          localStream: null,
+        });
+      }
+    }
+  }, []);
 
   const addBufferedCandidates = useCallback(() => {
     if (peerConnection && isRemoteDescriptionSet.current) {
@@ -26,7 +66,6 @@ export const useWebRTC = () => {
 
   const addLocalTracks = useCallback(
     (peerConnection: RTCPeerConnection | null) => {
-      console.log(localStreamRef.current, peerConnection);
       if (localStreamRef.current && peerConnection) {
         localStreamRef.current.getTracks().forEach((track) => {
           if (peerConnection && localStreamRef.current) {
@@ -73,10 +112,7 @@ export const useWebRTC = () => {
       socket.on("user-joined", async (userId) => {
         console.log("user-joined: ", userId);
         if (!localStreamRef.current) {
-          localStreamRef.current = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-          });
+          await getLocalPlayback();
         }
         addLocalTracks(peerConnection);
         const offer = await peerConnection?.createOffer();
@@ -94,10 +130,7 @@ export const useWebRTC = () => {
       socket.on("offer", async (offer, userId) => {
         console.log("received offer");
         if (!localStreamRef.current) {
-          localStreamRef.current = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-          });
+          await getLocalPlayback();
         }
         addLocalTracks(peerConnection);
         await peerConnection?.setRemoteDescription(
@@ -137,6 +170,8 @@ export const useWebRTC = () => {
       setPeerConnection(peerConnection);
     });
 
+    getLocalPlayback();
+
     return () => {
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -152,5 +187,6 @@ export const useWebRTC = () => {
     remoteStream,
     roomId,
     localStreamRef,
+    localStreamData,
   };
 };

@@ -5,26 +5,26 @@ import MicButton from "./components/mic-button";
 import VideoButton from "./components/video-button";
 import DeclineButton from "./components/decline-button";
 import LandingPage from "./landing";
-import { useWebRTC } from "./hooks/useWebRTC";
+import { LocalStreamData, useWebRTC } from "./hooks/useWebRTC";
 
 type AppContextType = {
   peerConnection: RTCPeerConnection | null;
   remoteStream: MediaStream | null;
-  localStreamRef: React.MutableRefObject<MediaStream | null>;
+  localStreamData: LocalStreamData;
 };
 
 export const AppContext = createContext<AppContextType>({
   peerConnection: null,
   remoteStream: null,
-  localStreamRef: { current: null },
+  localStreamData: { status: "idle", localStream: null },
 });
 
 function App() {
-  const { peerConnection, roomId, remoteStream, localStreamRef } = useWebRTC();
+  const { peerConnection, roomId, remoteStream, localStreamData } = useWebRTC();
 
   return (
     <AppContext.Provider
-      value={{ peerConnection, remoteStream, localStreamRef }}
+      value={{ peerConnection, remoteStream, localStreamData }}
     >
       {roomId ? (
         <div className="relative h-screen w-screen bg-black overflow-hidden">

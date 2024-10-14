@@ -1,6 +1,8 @@
+import { AppContext } from "@/App";
 import { cn } from "@/lib/utils";
 import {
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -15,40 +17,25 @@ function LocalPlayback() {
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [deviceError, setDeviceError] = useState(false);
   const [aspectRatio, setAspectRatio] = useState(16 / 9);
-
-  const getLocalPlayback = useCallback(async () => {
-    try {
-      const localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = localStream;
-
-        localVideoRef.current.onloadedmetadata = () => {
-          if (!localVideoRef.current) {
-            return;
-          }
-
-          const videoWidth = localVideoRef.current.videoWidth;
-          const videoHeight = localVideoRef.current.videoHeight;
-          setAspectRatio(videoWidth / videoHeight);
-        };
-      }
-    } catch (error) {
-      console.log(error);
-      if (error instanceof Error && error.name === "NotFoundError") {
-        setDeviceError(true);
-      }
-    }
-  }, []);
+  const { localStreamData } = useContext(AppContext);
 
   useEffect(() => {
-    getLocalPlayback();
-  }, [getLocalPlayback]);
+    if (!localVideoRef.current) {
+      return;
+    }
+    localVideoRef.current.srcObject = localStreamData.localStream;
+
+    localVideoRef.current.onloadedmetadata = () => {
+      if (!localVideoRef.current) {
+        return;
+      }
+
+      const videoWidth = localVideoRef.current.videoWidth;
+      const videoHeight = localVideoRef.current.videoHeight;
+      setAspectRatio(videoWidth / videoHeight);
+    };
+  }, [localStreamData]);
 
   useLayoutEffect(() => {
     setPosition({
@@ -141,7 +128,7 @@ function LocalPlayback() {
       onTouchStart={onTouchStart}
       className="bg-gradient-to-br from-indigo-500 to-purple-600 bg-opacity-30 rounded-lg p-1 shadow-lg"
     >
-      {deviceError ? (
+      {localStreamData.status === "device-not-found" ? (
         <div>
           <h2>Error occured</h2>
         </div>
