@@ -189,7 +189,14 @@ export const useWebRTC = () => {
         if (isRemoteDescriptionSet.current && peerConnection) {
           peerConnection
             .addIceCandidate(iceCandidate)
-            .catch((e) => console.error("Error adding ice candidate", e));
+            .catch((e) =>
+              console.error(
+                "Error adding ice candidate",
+                e,
+                " isRemoteDescriptionSet: ",
+                isRemoteDescriptionSet.current
+              )
+            );
         } else {
           iceCandidatesBuffer.current.push(iceCandidate);
         }
@@ -208,6 +215,7 @@ export const useWebRTC = () => {
       peerConnection?.close();
       socket.disconnect();
       setPeerConnection(null);
+      isRemoteDescriptionSet.current = false;
     };
   }, [roomId]);
 
