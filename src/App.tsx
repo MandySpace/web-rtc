@@ -6,6 +6,8 @@ import VideoButton from "./components/video-button";
 import DeclineButton from "./components/decline-button";
 import LandingPage from "./landing";
 import { LocalStreamData, useWebRTC } from "./hooks/useWebRTC";
+import { useSearchParams } from "./hooks/useSearchParams";
+import CallEndedPage from "./call-ended";
 
 type AppContextType = {
   peerConnection: RTCPeerConnection | null;
@@ -20,7 +22,10 @@ export const AppContext = createContext<AppContextType>({
 });
 
 function App() {
-  const { peerConnection, roomId, remoteStream, localStreamData } = useWebRTC();
+  const { peerConnection, remoteStream, localStreamData } = useWebRTC();
+  const searchParams = useSearchParams();
+  const roomId = searchParams.get("room");
+  const isCallEnded = searchParams.get("end");
 
   return (
     <AppContext.Provider
@@ -31,11 +36,13 @@ function App() {
           <RemotePlayback />
           <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-center space-x-4 md:space-x-6">
             <MicButton />
-            <DeclineButton />
+            <DeclineButton roomId={roomId} />
             <VideoButton />
           </div>
           <LocalPlayback />
         </div>
+      ) : isCallEnded ? (
+        <CallEndedPage />
       ) : (
         <LandingPage />
       )}

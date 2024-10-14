@@ -81,7 +81,7 @@ export default function LandingPage() {
 
       <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 text-center text-gray-600 border-t border-gray-200">
         <p className="text-sm sm:text-base">
-          &copy; 2024 VideoConnect. All rights reserved.
+          &copy; {new Date().getFullYear()} VideoConnect. All rights reserved.
         </p>
       </footer>
     </div>

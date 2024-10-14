@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export function useRoomSearchParams() {
+export function useSearchParams() {
   const [searchParams, setSearchParams] = useState<URLSearchParams>(
     new URLSearchParams(window.location.search)
   );
@@ -18,5 +18,5 @@ export function useRoomSearchParams() {
     };
   }, []);
 
-  return { roomId: searchParams.get("room") };
+  return searchParams;
 }
