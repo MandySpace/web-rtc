@@ -107,6 +107,7 @@ export default function CallEndedPage() {
                 const newUrl = url.toString();
                 window.history.pushState({}, "", newUrl);
                 window.dispatchEvent(new PopStateEvent("popstate"));
+                window.localStorage.clear();
               }}
             >
               Start Another Call
