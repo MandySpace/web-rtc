@@ -32,7 +32,6 @@ export const useWebRTC = () => {
   const roomId = searchParams.get("room");
   const iceCandidatesBuffer = useRef<RTCIceCandidate[]>([]);
   const isIceGatheringComplete = useRef<boolean>(false);
-  const isRemoteDescriptionSet = useRef<boolean>(false);
   const localStreamRef = useRef<MediaStream | null>(null);
 
   //stats state
@@ -67,11 +66,7 @@ export const useWebRTC = () => {
   }, []);
 
   const addBufferedCandidates = useCallback(() => {
-    if (
-      peerConnection &&
-      isRemoteDescriptionSet.current &&
-      isIceGatheringComplete.current
-    ) {
+    if (peerConnection && isIceGatheringComplete.current) {
       iceCandidatesBuffer.current.forEach((candidate) => {
         peerConnection
           ?.addIceCandidate(candidate)
@@ -182,7 +177,6 @@ export const useWebRTC = () => {
         await peerConnection?.setRemoteDescription(
           new RTCSessionDescription(offer)
         );
-        isRemoteDescriptionSet.current = true;
 
         const answer = await peerConnection?.createAnswer();
         await peerConnection?.setLocalDescription(answer);
@@ -197,7 +191,6 @@ export const useWebRTC = () => {
         await peerConnection?.setRemoteDescription(
           new RTCSessionDescription(answer)
         );
-        isRemoteDescriptionSet.current = true;
         addBufferedCandidates();
       });
 
@@ -205,20 +198,13 @@ export const useWebRTC = () => {
         const iceCandidate = new RTCIceCandidate(candidate);
 
         if (
-          isRemoteDescriptionSet.current &&
           peerConnection &&
+          peerConnection.remoteDescription &&
           isIceGatheringComplete.current
         ) {
           peerConnection
             .addIceCandidate(iceCandidate)
-            .catch((e) =>
-              console.error(
-                "Error adding ice candidate",
-                e,
-                " isRemoteDescriptionSet: ",
-                isRemoteDescriptionSet.current
-              )
-            );
+            .catch((e) => console.error("Error adding ice candidate", e));
         } else {
           iceCandidatesBuffer.current.push(iceCandidate);
         }
@@ -237,7 +223,7 @@ export const useWebRTC = () => {
       peerConnection?.close();
       socket.disconnect();
       setPeerConnection(null);
-      isRemoteDescriptionSet.current = false;
+      isIceGatheringComplete.current = false;
     };
   }, [roomId]);
 
