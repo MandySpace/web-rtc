@@ -31,6 +31,7 @@ export const useWebRTC = () => {
   const searchParams = useSearchParams();
   const roomId = searchParams.get("room");
   const iceCandidatesBuffer = useRef<RTCIceCandidate[]>([]);
+  const isIceGatheringComplete = useRef<boolean>(false);
   const isRemoteDescriptionSet = useRef<boolean>(false);
   const localStreamRef = useRef<MediaStream | null>(null);
 
@@ -66,7 +67,11 @@ export const useWebRTC = () => {
   }, []);
 
   const addBufferedCandidates = useCallback(() => {
-    if (peerConnection && isRemoteDescriptionSet.current) {
+    if (
+      peerConnection &&
+      isRemoteDescriptionSet.current &&
+      isIceGatheringComplete.current
+    ) {
       iceCandidatesBuffer.current.forEach((candidate) => {
         peerConnection
           ?.addIceCandidate(candidate)
@@ -125,6 +130,13 @@ export const useWebRTC = () => {
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
           socket.emit("ice-candidate", event.candidate, roomId);
+        }
+      };
+
+      peerConnection.onicegatheringstatechange = () => {
+        if (peerConnection?.iceGatheringState === "complete") {
+          isIceGatheringComplete.current = true;
+          addBufferedCandidates();
         }
       };
 
@@ -192,7 +204,11 @@ export const useWebRTC = () => {
       socket.on("ice-candidate", async (candidate) => {
         const iceCandidate = new RTCIceCandidate(candidate);
 
-        if (isRemoteDescriptionSet.current && peerConnection) {
+        if (
+          isRemoteDescriptionSet.current &&
+          peerConnection &&
+          isIceGatheringComplete.current
+        ) {
           peerConnection
             .addIceCandidate(iceCandidate)
             .catch((e) =>
