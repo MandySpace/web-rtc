@@ -1,0 +1,23 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20.x
+  build:
+    commands:
+      - echo Entered the build phase...
+      - npm ci
+      - npm run build
+      - echo Build completed on `date`
+
+  post_build:
+    commands:
+      - echo Entered the post_build phase...
+      - aws s3 sync build s3://webrtc-video-frontend --delete
+
+artifacts:
+  files:
+    - "**/*"
+  base-directory: build
+  discard-paths: no
